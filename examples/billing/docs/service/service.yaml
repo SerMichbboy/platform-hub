@@ -1,0 +1,63 @@
+schema_version: 1
+
+service:
+  id: billing
+  name: Billing
+  purpose: Charges customers and keeps the payment ledger.
+  owner:
+    team: payments
+    contact: "#team-payments"
+  lifecycle: active
+  tags: [backend, go]
+
+source:
+  repo: https://github.com/example/billing
+  default_branch: main
+  language: go
+
+provides:
+  http:
+    - id: charge
+      method: POST
+      path: /api/v1/charges
+      summary: Charge a customer for an order.
+      code: internal/api/charges.go:Charge
+      flow: docs/service/flows/charge.md
+
+  messages:
+    - id: on-order-created
+      channel: rabbitmq
+      topic: orders.created
+      direction: consume
+      summary: Opens a ledger entry when an order appears.
+      code: internal/events/consumer.go:OnOrderCreated
+
+depends_on:
+  datastores:
+    - id: postgres-billing
+      kind: postgres
+      summary: Ledger and charge attempts.
+      code: internal/storage/db.go
+      confidence: verified
+
+  queues:
+    - id: rabbitmq-main
+      kind: rabbitmq
+      topics: [orders.created]
+      direction: consume
+      summary: Order lifecycle events.
+      code: internal/events/consumer.go
+      confidence: verified
+
+docs:
+  architecture: docs/service/architecture.md
+  flows_index: docs/service/flows/README.md
+
+coverage:
+  http: complete
+  messages: complete
+  depends_on: complete
+
+verified:
+  commit: 9f8e7d6
+  date: 2026-10-01

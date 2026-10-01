@@ -1,0 +1,82 @@
+# Copy to docs/service/service.yaml in your repository and fill it in.
+#
+# Rules worth keeping in mind while editing:
+#   - never invent a dependency; if the target is unclear use `id: unknown`
+#     with `confidence: unknown`
+#   - keep `coverage` honest — it is how readers tell a partial map from a
+#     complete one
+#   - update `verified` whenever you re-check the description against the code
+#
+# For editor completion, point your YAML language server at:
+#   https://raw.githubusercontent.com/<owner>/platform-hub/main/schema/service.schema.json
+
+schema_version: 1
+
+service:
+  id: # permanent slug: lowercase letters, digits, dashes. Must survive renames.
+  name:
+  purpose: # one or two sentences: what it is responsible for
+  owner:
+    team:
+    contact:
+  lifecycle: active # active | deprecated | planned
+  tags: []
+
+source:
+  repo:
+  default_branch: main
+  language:
+
+provides:
+  http: []
+  # - id: create-order
+  #   method: POST
+  #   path: /api/v1/orders
+  #   summary:
+  #   code: src/api/orders.py:create_order
+  #   flow: docs/service/flows/create-order.md
+
+  messages: []
+  # - id: order-created
+  #   channel: rabbitmq
+  #   topic: orders.created
+  #   direction: publish      # publish | consume
+  #   summary:
+  #   code: src/events/publisher.py:publish_order_created
+
+depends_on:
+  services: []
+  # - id: billing             # or `unknown` when the target is undetermined
+  #   via: http
+  #   summary:
+  #   code: src/clients/billing.py:charge
+  #   confidence: verified    # verified | assumed | unknown
+
+  datastores: []
+  # - id: postgres-orders
+  #   kind: postgres
+  #   summary:
+  #   code: src/infrastructure/db/engine.py
+  #   confidence: verified
+
+  queues: []
+  # - id: rabbitmq-main
+  #   kind: rabbitmq
+  #   topics: [orders.created]
+  #   direction: publish
+  #   confidence: verified
+
+docs:
+  architecture: docs/service/architecture.md
+  flows_index: docs/service/flows/README.md
+  changelog: docs/CHANGELOG.md
+
+coverage:
+  http: none # complete | partial | none
+  messages: none
+  depends_on: none
+  notes:
+
+verified:
+  commit:
+  date:

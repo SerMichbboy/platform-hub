@@ -1,0 +1,34 @@
+# Real hub configuration — points at actual repositories, URLs and tokens.
+# Only hub.config.example.yaml is tracked. Keep it that way: this file is the
+# one thing that would leak a private topology into a public repo.
+hub.config.yaml
+hub.config.*.yaml
+!hub.config.example.yaml
+
+# Collected output: snapshots of other people's repositories.
+.hub-cache/
+build/
+
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node / web
+node_modules/
+web/dist/
+.vite/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/

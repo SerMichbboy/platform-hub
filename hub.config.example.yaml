@@ -1,0 +1,39 @@
+# Copy to hub.config.yaml and edit. The copy is gitignored — it describes a
+# private topology, so it must never be committed.
+#
+# Tokens are referenced by environment variable name, never written here.
+
+service_file: docs/service/service.yaml
+output: build/hub.json
+
+sources:
+  # Repositories already checked out locally. No tokens, no network — the
+  # quickest way to see the hub working. The bundled examples use this.
+  - type: local
+    name: examples
+    paths:
+      - examples/checkout
+      - examples/billing
+
+  # Scan every git repository one level below a directory:
+  # - type: local
+  #   name: workspace
+  #   roots:
+  #     - ~/projects
+
+  # - type: gitlab
+  #   name: gitlab
+  #   host: https://gitlab.example.com
+  #   token_env: GITLAB_TOKEN
+  #   projects:
+  #     - my-group/checkout
+  #   groups:
+  #     - my-group
+
+  # - type: github
+  #   name: github
+  #   token_env: GITHUB_TOKEN
+  #   repos:
+  #     - my-org/checkout
+  #   orgs:
+  #     - my-org

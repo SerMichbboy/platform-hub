@@ -1,0 +1,96 @@
+# Example descriptor. Also a worked demonstration of the honesty rules:
+# see `confidence: unknown` and the `coverage` block near the bottom.
+
+schema_version: 1
+
+service:
+  id: checkout
+  name: Checkout
+  purpose: Accepts orders, reserves stock and starts payment.
+  owner:
+    team: commerce
+    contact: "#team-commerce"
+  lifecycle: active
+  tags: [backend, python]
+
+source:
+  repo: https://github.com/example/checkout
+  default_branch: main
+  language: python
+
+provides:
+  http:
+    - id: create-order
+      method: POST
+      path: /api/v1/orders
+      summary: Create an order and start payment.
+      code: src/api/orders.py:create_order
+      flow: docs/service/flows/create-order.md
+    - id: get-order
+      method: GET
+      path: /api/v1/orders/{id}
+      summary: Read a single order.
+      code: src/api/orders.py:get_order
+
+  messages:
+    - id: order-created
+      channel: rabbitmq
+      topic: orders.created
+      direction: publish
+      summary: Emitted once an order is persisted.
+      code: src/events/publisher.py:publish_order_created
+
+depends_on:
+  services:
+    - id: billing
+      via: http
+      summary: Charges the customer for a new order.
+      code: src/clients/billing.py:charge
+      confidence: verified
+
+    # Declared but not collected anywhere: the hub reports this as a dangling
+    # reference rather than drawing a line to a service it knows nothing about.
+    - id: legacy-crm
+      via: http
+      summary: Pushes the customer record into the old CRM.
+      code: src/clients/crm.py:sync_customer
+      confidence: assumed
+
+    # The call provably happens, the target is genuinely not established.
+    # Recorded rather than guessed or quietly dropped.
+    - id: unknown
+      via: http
+      summary: Outbound webhook to a partner endpoint read from configuration.
+      code: src/clients/partner.py:notify
+      confidence: unknown
+
+  datastores:
+    - id: postgres-checkout
+      kind: postgres
+      summary: Orders and reservations.
+      code: src/infrastructure/db/engine.py
+      confidence: verified
+
+  queues:
+    - id: rabbitmq-main
+      kind: rabbitmq
+      topics: [orders.created]
+      direction: publish
+      summary: Order lifecycle events.
+      code: src/events/publisher.py
+      confidence: verified
+
+docs:
+  architecture: docs/service/architecture.md
+  flows_index: docs/service/flows/README.md
+  changelog: docs/CHANGELOG.md
+
+coverage:
+  http: complete
+  messages: complete
+  depends_on: partial
+  notes: Background jobs are not described yet.
+
+verified:
+  commit: a1b2c3d
+  date: 2026-10-01

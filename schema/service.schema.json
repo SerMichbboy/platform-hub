@@ -1,0 +1,608 @@
+{
+  "$defs": {
+    "Confidence": {
+      "description": "How well a dependency is backed by evidence.\n\nThe core rule: never guess a dependency. If a service clearly calls\n*something* but the target cannot be determined, that is recorded as\n`unknown` rather than omitted or invented \u2014 an omitted edge reads as \"no\ndependency\", which is a different and wrong claim.",
+      "enum": [
+        "verified",
+        "assumed",
+        "unknown"
+      ],
+      "title": "Confidence",
+      "type": "string"
+    },
+    "Coverage": {
+      "description": "How completely a section is documented.\n\nWithout this, an empty dependency list is indistinguishable from \"this\nservice has no dependencies\", and a partial map reads as a complete one.",
+      "enum": [
+        "complete",
+        "partial",
+        "none"
+      ],
+      "title": "Coverage",
+      "type": "string"
+    },
+    "CoverageBlock": {
+      "additionalProperties": false,
+      "properties": {
+        "http": {
+          "$ref": "#/$defs/Coverage",
+          "default": "none"
+        },
+        "messages": {
+          "$ref": "#/$defs/Coverage",
+          "default": "none"
+        },
+        "depends_on": {
+          "$ref": "#/$defs/Coverage",
+          "default": "none"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        }
+      },
+      "title": "CoverageBlock",
+      "type": "object"
+    },
+    "DatastoreDep": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "description": "postgres, redis, s3\u2026",
+          "title": "Kind",
+          "type": "string"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code"
+        },
+        "confidence": {
+          "$ref": "#/$defs/Confidence",
+          "default": "assumed"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "summary"
+      ],
+      "title": "DatastoreDep",
+      "type": "object"
+    },
+    "DependsOn": {
+      "additionalProperties": false,
+      "description": "What the service depends on. The dependency map is built from this.",
+      "properties": {
+        "services": {
+          "items": {
+            "$ref": "#/$defs/ServiceDep"
+          },
+          "title": "Services",
+          "type": "array"
+        },
+        "datastores": {
+          "items": {
+            "$ref": "#/$defs/DatastoreDep"
+          },
+          "title": "Datastores",
+          "type": "array"
+        },
+        "queues": {
+          "items": {
+            "$ref": "#/$defs/QueueDep"
+          },
+          "title": "Queues",
+          "type": "array"
+        }
+      },
+      "title": "DependsOn",
+      "type": "object"
+    },
+    "Direction": {
+      "enum": [
+        "publish",
+        "consume"
+      ],
+      "title": "Direction",
+      "type": "string"
+    },
+    "Docs": {
+      "additionalProperties": false,
+      "properties": {
+        "architecture": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Architecture"
+        },
+        "flows_index": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Flows Index"
+        },
+        "changelog": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Changelog"
+        }
+      },
+      "title": "Docs",
+      "type": "object"
+    },
+    "HttpEndpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Stable identifier for this operation within the service",
+          "title": "Id",
+          "type": "string"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where it is implemented",
+          "title": "Code"
+        },
+        "flow": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Path to the flow document",
+          "title": "Flow"
+        }
+      },
+      "required": [
+        "id",
+        "method",
+        "path",
+        "summary"
+      ],
+      "title": "HttpEndpoint",
+      "type": "object"
+    },
+    "Lifecycle": {
+      "enum": [
+        "active",
+        "deprecated",
+        "planned"
+      ],
+      "title": "Lifecycle",
+      "type": "string"
+    },
+    "MessageEndpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "channel": {
+          "description": "Transport: rabbitmq, kafka, redis\u2026",
+          "title": "Channel",
+          "type": "string"
+        },
+        "topic": {
+          "description": "Queue, topic or routing key",
+          "title": "Topic",
+          "type": "string"
+        },
+        "direction": {
+          "$ref": "#/$defs/Direction"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code"
+        },
+        "flow": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Flow"
+        }
+      },
+      "required": [
+        "id",
+        "channel",
+        "topic",
+        "direction",
+        "summary"
+      ],
+      "title": "MessageEndpoint",
+      "type": "object"
+    },
+    "Owner": {
+      "additionalProperties": false,
+      "properties": {
+        "team": {
+          "description": "Team responsible for the service",
+          "title": "Team",
+          "type": "string"
+        },
+        "contact": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Who to ask about it",
+          "title": "Contact"
+        }
+      },
+      "required": [
+        "team"
+      ],
+      "title": "Owner",
+      "type": "object"
+    },
+    "Provides": {
+      "additionalProperties": false,
+      "description": "What the service exposes to the outside world.",
+      "properties": {
+        "http": {
+          "items": {
+            "$ref": "#/$defs/HttpEndpoint"
+          },
+          "title": "Http",
+          "type": "array"
+        },
+        "messages": {
+          "items": {
+            "$ref": "#/$defs/MessageEndpoint"
+          },
+          "title": "Messages",
+          "type": "array"
+        }
+      },
+      "title": "Provides",
+      "type": "object"
+    },
+    "QueueDep": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "description": "rabbitmq, kafka\u2026",
+          "title": "Kind",
+          "type": "string"
+        },
+        "topics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Topics",
+          "type": "array"
+        },
+        "direction": {
+          "$ref": "#/$defs/Direction"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code"
+        },
+        "confidence": {
+          "$ref": "#/$defs/Confidence",
+          "default": "assumed"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "direction"
+      ],
+      "title": "QueueDep",
+      "type": "object"
+    },
+    "ServiceDep": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "id of another service, or 'unknown' if the target is undetermined",
+          "title": "Id",
+          "type": "string"
+        },
+        "via": {
+          "default": "http",
+          "description": "http, grpc, messages\u2026",
+          "title": "Via",
+          "type": "string"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code"
+        },
+        "confidence": {
+          "$ref": "#/$defs/Confidence",
+          "default": "assumed"
+        }
+      },
+      "required": [
+        "id",
+        "summary"
+      ],
+      "title": "ServiceDep",
+      "type": "object"
+    },
+    "ServiceInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Permanent identifier. Must not change when the service is renamed",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "purpose": {
+          "title": "Purpose",
+          "type": "string"
+        },
+        "owner": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Owner"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "lifecycle": {
+          "$ref": "#/$defs/Lifecycle",
+          "default": "active"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "purpose"
+      ],
+      "title": "ServiceInfo",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "repo": {
+          "description": "Repository URL",
+          "title": "Repo",
+          "type": "string"
+        },
+        "default_branch": {
+          "default": "main",
+          "description": "Only the default branch is collected \u2014 main or master",
+          "title": "Default Branch",
+          "type": "string"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language"
+        }
+      },
+      "required": [
+        "repo"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "Verified": {
+      "additionalProperties": false,
+      "description": "Which commit the description was checked against.\n\nWithout this there is no way to tell a current description from one written\ntwo years and four refactors ago.",
+      "properties": {
+        "commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Commit"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        }
+      },
+      "title": "Verified",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Root of `docs/service/service.yaml`.",
+  "properties": {
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "service": {
+      "$ref": "#/$defs/ServiceInfo"
+    },
+    "source": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Source"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "provides": {
+      "$ref": "#/$defs/Provides"
+    },
+    "depends_on": {
+      "$ref": "#/$defs/DependsOn"
+    },
+    "docs": {
+      "$ref": "#/$defs/Docs"
+    },
+    "coverage": {
+      "$ref": "#/$defs/CoverageBlock"
+    },
+    "verified": {
+      "$ref": "#/$defs/Verified"
+    }
+  },
+  "required": [
+    "service"
+  ],
+  "title": "service.yaml",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
