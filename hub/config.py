@@ -32,7 +32,9 @@ class Base(BaseModel):
 class TokenMixin(Base):
     token_env: str | None = Field(
         default=None,
-        description="Name of the env var holding the access token. Never the token itself.",
+        description=(
+            "Name of the env var holding the access token. Never the token itself."
+        ),
     )
 
     def token(self) -> str | None:

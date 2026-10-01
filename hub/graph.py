@@ -12,8 +12,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from enum import StrEnum
 
-from .models import Confidence, ServiceDoc, UNKNOWN_TARGET
-from .sources.base import Fetched, Problem, Severity
+from .models import UNKNOWN_TARGET, Confidence, ServiceDoc
+from .sources.base import Problem, Severity
 
 
 class NodeKind(StrEnum):
@@ -78,6 +78,10 @@ class GraphBuilder:
         self._nodes: dict[str, Node] = {}
         self._edges: list[Edge] = []
         self._problems: list[Problem] = []
+        #: Descriptors that made it into the graph. A rejected duplicate must
+        #: not appear in the output either, or the service list and the map
+        #: disagree about what exists.
+        self._accepted: list[CollectedService] = []
 
     def add_problem(self, problem: Problem) -> None:
         self._problems.append(problem)
@@ -86,11 +90,15 @@ class GraphBuilder:
         # Two passes: every described service must exist as a node before edges
         # are resolved, otherwise resolution depends on collection order.
         for item in services:
-            self._add_service_node(item)
-        for item in services:
+            if self._add_service_node(item):
+                self._accepted.append(item)
+        # Edges only from accepted descriptors. Walking the rejected duplicate
+        # too would attribute its dependencies to the service that won the id.
+        for item in self._accepted:
             self._add_edges(item)
 
-    def _add_service_node(self, item: CollectedService) -> None:
+    def _add_service_node(self, item: CollectedService) -> bool:
+        """Register the service node. Returns False if the descriptor was rejected."""
         info = item.doc.service
         if info.id in self._nodes and self._nodes[info.id].described:
             self._problems.append(
@@ -99,10 +107,14 @@ class GraphBuilder:
                     source=item.source,
                     repo=item.repo,
                     message=f"duplicate service id {info.id!r}",
-                    detail="Two repositories declare the same id; ids must be unique.",
+                    detail=(
+                        "Two repositories declare the same id; ids must be unique. "
+                        f"This descriptor is excluded; {self._nodes[info.id].label!r} "
+                        "keeps the id."
+                    ),
                 )
             )
-            return
+            return False
 
         self._nodes[info.id] = Node(
             id=info.id,
@@ -116,8 +128,11 @@ class GraphBuilder:
             repo_url=item.repo_url,
             commit=item.commit,
         )
+        return True
 
-    def _ensure_node(self, node_id: str, kind: NodeKind, label: str | None = None) -> None:
+    def _ensure_node(
+        self, node_id: str, kind: NodeKind, label: str | None = None
+    ) -> None:
         if node_id not in self._nodes:
             self._nodes[node_id] = Node(
                 id=node_id, kind=kind, label=label or node_id, described=False
@@ -145,7 +160,10 @@ class GraphBuilder:
                             severity=Severity.WARNING,
                             source=item.source,
                             repo=item.repo,
-                            message=f"{source_id} depends on undescribed service {target!r}",
+                            message=(
+                                f"{source_id} depends on undescribed "
+                                f"service {target!r}"
+                            ),
                             detail="No collected repository declares this id.",
                         )
                     )
@@ -197,7 +215,7 @@ class GraphBuilder:
                 )
             )
 
-    def build(self, services: list[CollectedService]) -> dict:
+    def build(self) -> dict:
         described = sum(1 for n in self._nodes.values() if n.described)
         return {
             "nodes": [asdict(n) for n in self._nodes.values()],
@@ -223,6 +241,6 @@ class GraphBuilder:
                     "commit": s.commit,
                     "doc": s.doc.model_dump(mode="json"),
                 }
-                for s in services
+                for s in self._accepted
             ],
         }

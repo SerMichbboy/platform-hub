@@ -9,9 +9,10 @@ swallow it and present an incomplete map as a complete one.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Iterator, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 
 class Severity(StrEnum):

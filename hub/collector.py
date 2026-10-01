@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import yaml
 from pydantic import ValidationError
@@ -105,7 +105,7 @@ def collect(config: HubConfig) -> dict:
                 services.append(parsed)
 
     builder.add_services(services)
-    result = builder.build(services)
-    result["generated_at"] = datetime.now(timezone.utc).isoformat()
+    result = builder.build()
+    result["generated_at"] = datetime.now(UTC).isoformat()
     result["service_file"] = config.service_file
     return result

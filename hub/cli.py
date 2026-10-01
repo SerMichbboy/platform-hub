@@ -117,12 +117,27 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
 
-    if args.command == "check":
-        return _check(args.paths)
-    if args.command == "collect":
-        return _collect(args.config, args.output)
-    if args.command == "schema":
-        return _schema(args.output)
+    try:
+        if args.command == "check":
+            return _check(args.paths)
+        if args.command == "collect":
+            return _collect(args.config, args.output)
+        if args.command == "schema":
+            return _schema(args.output)
+    except FileNotFoundError as exc:
+        # A missing or malformed config is ordinary user error, not a crash.
+        # A traceback here just buries the one line that explains the fix.
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    except ValidationError as exc:
+        print(
+            f"error: invalid configuration\n{_format_validation_error(exc)}",
+            file=sys.stderr,
+        )
+        return 1
+    except OSError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
     return 2
 
 
