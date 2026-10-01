@@ -142,6 +142,10 @@ verified:
 See [`examples/`](examples/) for complete, annotated descriptors and
 [`schema/service.schema.json`](schema/service.schema.json) for every field.
 
+**Onboarding a service?** [`docs/ADOPTING.md`](docs/ADOPTING.md) walks through
+it — what to write first, how to record a dependency you cannot pin down, and
+how to keep the description from rotting.
+
 ## Roadmap
 
 - [x] Schema, validator, graph builder
